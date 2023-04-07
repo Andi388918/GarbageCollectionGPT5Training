@@ -56,24 +56,22 @@ y = [np.mean(unp.nominal_values(mean_velocity_batch)) for mean_velocity_batch in
 yerr = [np.std(unp.nominal_values(mean_velocity_batch)) / len(mean_velocity_batch) for mean_velocity_batch in mean_velocities]  # cm/s / error is standard deviation of batch
 
 popt, pcov = curve_fit(instantaneous_velocity, (unp.nominal_values(distances), [uncertainties.nominal_value(s)] * len(distances)), y, sigma=yerr, absolute_sigma=True)  # fit to measurement values
-a = ufloat(popt[0], pcov[0])    # cm/s^2 / extract acceleration fit parameter
-
-print(a)
+a1 = ufloat(popt[0], pcov[0])    # cm/s^2 / extract acceleration fit parameter
 
 x_values_fit = np.linspace(0, 100, 1000)    # cm
-plt.plot(x_values_fit, unp.nominal_values(instantaneous_velocity((x_values_fit, np.array([s] * len(x_values_fit))), a)))    # plot the fit function
+plt.plot(x_values_fit, unp.nominal_values(instantaneous_velocity((x_values_fit, np.array([s] * len(x_values_fit))), a1)))    # plot the fit function
 
 h = ufloat(1.5, 0.1)    # cm
 
 # 0.015 m erhöhung bei l = 1 m länge
 l = 100 # cm
-g = a / unp.sin(unp.arctan(h / l)) / 100    # m/s^2
+g1 = a1 / unp.sin(unp.arctan(h / l)) / 100    # m/s^2
 
-print(f"g (extrapolated from mean velocities) = {g}")
+print(f"g (extrapolated from mean velocities) = {g1} m/s^2")
 
 plt.errorbar(unp.nominal_values(distances), y, xerr, yerr, fmt = '.')
 
-instantaneous_velocity_fit = instantaneous_velocity((0, s), a)  # the y-intercept of the fit function is equal to the instantaneous velocity
+instantaneous_velocity_fit = instantaneous_velocity((0, s), a1)  # the y-intercept of the fit function is equal to the instantaneous velocity
 instantaneous_velocities_measured = unp.uarray([47.6, 47.6, 47.3, 47.3, 47.3], [0.1] * 5)    # these are the measurment values for the 'instantaneous velocity'
 
 # since we measured the mean velocities and instant. vel. at different positions and the velocity increases 
@@ -84,8 +82,8 @@ mean_instantaneous_velocity_measured = np.mean(corrected_instantaneous_velocitie
 std_dev_instantaneous_velocity_measured = np.std(corrected_instantaneous_velocities) / len(corrected_instantaneous_velocities)
 instantaneous_velocity_measured = ufloat(mean_instantaneous_velocity_measured, std_dev_instantaneous_velocity_measured)
 
-print(f"instantaneous velocity from fit = {instantaneous_velocity_fit}")
-print(f"instantaneous velocity from measurement = {instantaneous_velocity_measured}")
+print(f"instantaneous velocity from fit = {instantaneous_velocity_fit} cm/s")
+print(f"instantaneous velocity from measurement = {instantaneous_velocity_measured} cm/s")
 
 ######################################################################################
 
@@ -101,12 +99,84 @@ x2 = ufloat(90, placement_error)    # cm
 mean_velocity_sensor_1 = ufloat(np.mean(unp.nominal_values(velocities_sensor_1)), 0)
 mean_velocity_sensor_2 = ufloat(np.mean(unp.nominal_values(velocities_sensor_2)), 0)
 
-a2 = (mean_velocity_sensor_1 ** 2 - mean_velocity_sensor_2 ** 2) / (2 * (x1 - x2))
-print(a2)
+a2 = (mean_velocity_sensor_1 ** 2 - mean_velocity_sensor_2 ** 2) / (2 * (x2 - x1))  # cm/s^2
+
+g2 = a2 / unp.sin(unp.arctan(h / l)) / 100  # m/s^2
+print(f"g (calculated from inst. vel. difference) = {g2} m/s^2")
 
 ######################################################################################
 
-# elastic collision ##################################################################
+# collisions #########################################################################
+
+# unweighted elastic collision
+
+distance = ufloat(40, 1)    # cm
+m1 = ufloat(207, 1) # g
+m2 = ufloat(205, 1) # g
+
+v1_i = unp.uarray([43.4, 45.8, 27.3, 34.8, 38.4], [0.1] * 5) # cm/s
+v2_i = unp.uarray([-41.8, -40.3, -27.1, -42.5, -35.9], [0.1] * 5)    # cm/s
+v1_a = unp.uarray([-38.7, -37.7, -26.3, -37.1, -34.2], [0.1] * 5)    # cm/s
+v2_a = unp.uarray([15.7, 44.0, 26.6, 33.8, 37.5], [0.1] * 5) # cm/s
+
+vsp_i = (m1 * v1_i + m2 * v2_i) / (m1 + m2)    # cm/s
+vsp_a = (m1 * v1_a + m2 * v2_a) / (m1 + m2)    # cm/s
+vrel_i = v1_i - v2_i
+vrel_a = v1_a - v2_a
+
+delta_vsp = vsp_a - vsp_i   # cm/s
+print(f"elastic collision (unweighted) vsp_a - vsp_i:")
+print(delta_vsp)
+
+eta = (vrel_a/vrel_i)**2
+print(f"elastic collision (unweighted) elasticity parameter:")
+print(eta)
+
+# weighted elastic collision
+
+m1 = ufloat(406, 1) # g
+m2 = ufloat(205, 1) # g
+
+v1_i = unp.uarray([38.9, 27.4, 33.8, 48, 50], [0.1] * 5) # cm/s
+v2_i = unp.uarray([-54.3, -32.7, -42.9, -52, -41.8], [0.1] * 5)    # cm/s
+v1_a = unp.uarray([-21, -10, -15.9, -14.6, -6.3], [0.1] * 5)    # cm/s
+v2_a = unp.uarray([64.9, 44.6, 56.4, 75.1, 67.1], [0.1] * 5) # cm/s
+
+vsp_i = (m1 * v1_i + m2 * v2_i) / (m1 + m2)    # cm/s
+vsp_a = (m1 * v1_a + m2 * v2_a) / (m1 + m2)    # cm/s
+vrel_i = v1_i - v2_i
+vrel_a = v1_a - v2_a
+
+delta_vsp = vsp_a - vsp_i   # cm/s
+print(f"elastic collision (weighted) vsp_a - vsp_i:")
+print(delta_vsp)
+
+eta = (vrel_a/vrel_i)**2
+print(f"elastic collision (weighted) elasticity parameter:")
+print(eta)
+
+# inelastic collision
+
+distance = ufloat(40, 1)    # cm
+m1 = ufloat(207, 1) # g
+m2 = ufloat(205, 1) # g
+
+v1_i = unp.uarray([55.8, 64.5, 61.7, 58.8, 52.6], [0.1] * 5) # cm/s
+v2_i = unp.uarray([-66.2, -61.7, -49, -45.6, -74], [0.1] * 5)    # cm/s
+v_a = unp.uarray([-4, 1.9, 5.8, 6.2, -9.5], [0.1] * 5)  # cm/s
+
+vsp_i = (m1 * v1_i + m2 * v2_i) / (m1 + m2)    # cm/s
+vsp_a = v_a    # cm/s
+vrel_i = v1_i - v2_i
+vrel_a = v_a
+
+delta_vsp = vsp_a - vsp_i   # cm/s
+print(f"inelastic collision v_a - vsp_i:")
+print(delta_vsp)
+
+eta = (vrel_a/vrel_i)**2
+print(f"inelastic collision elasticity parameter:")
+print(eta)
 
 ######################################################################################
 
