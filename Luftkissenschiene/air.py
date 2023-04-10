@@ -5,6 +5,29 @@ from scipy.optimize import curve_fit
 import uncertainties
 import matplotlib.pyplot as plt
 
+# functions ##########################################################################
+
+def get_speed_with_relative_correction(measurement, correction_interval = [0.01, 0.02]):
+    correction1 = measurement * (1 - correction_interval[0])
+    correction2 = measurement * (1 - correction_interval[1])
+    uncertainty = 1/2 * (np.abs(uncertainties.nominal_value(correction1) - uncertainties.nominal_value(correction2)) + uncertainties.std_dev(correction1) + uncertainties.std_dev(correction2))
+    return ufloat(np.mean([uncertainties.nominal_value(correction1), uncertainties.nominal_value(correction2)]), uncertainty)
+
+def get_speed_with_random_error(measurement):
+    return ufloat(measurement, (0.1**2 + (3 * 10**(-5) * measurement ** 2) ** 2) ** (1/2))   # cm/s
+
+def get_speed_with_total_error(measurement):
+    return get_speed_with_relative_correction(get_speed_with_random_error(measurement))
+
+def get_speeds_with_total_uncertainties(measurements):
+    return np.array([get_speed_with_total_error(measurement) for measurement in measurements])
+
+def instantaneous_velocity(x, acceleration):
+    distance, s = x
+    return (2*acceleration*s)**(1/2) * 1/2 * ((1 + distance/(2*s))**(1/2) + (1 - distance/(2*s))**(1/2))
+
+######################################################################################
+
 # measurements #######################################################################
 
 placement_error = 0.5    # cm
@@ -38,12 +61,6 @@ times_for_distances = [   # cm
         )
 ]
 
-# functions ##########################################################################
-
-def instantaneous_velocity(x, acceleration):
-    distance, s = x
-    return (2*acceleration*s)**(1/2) * 1/2 * ((1 + distance/(2*s))**(1/2) + (1 - distance/(2*s))**(1/2))
-
 ######################################################################################
 
 # mean velocities, instantaneous velocity calculation ################################
@@ -63,7 +80,7 @@ plt.plot(x_values_fit, unp.nominal_values(instantaneous_velocity((x_values_fit, 
 
 h = ufloat(1.5, 0.1)    # cm
 
-# 0.015 m erhöhung bei l = 1 m länge
+# 0.015 m elevation at l = 1 m length
 l = 100 # cm
 g1 = a1 / unp.sin(unp.arctan(h / l)) / 100    # m/s^2
 
@@ -72,7 +89,7 @@ print(f"g (extrapolated from mean velocities) = {g1} m/s^2")
 plt.errorbar(unp.nominal_values(distances), y, xerr, yerr, fmt = '.')
 
 instantaneous_velocity_fit = instantaneous_velocity((0, s), a1)  # the y-intercept of the fit function is equal to the instantaneous velocity
-instantaneous_velocities_measured = unp.uarray([47.6, 47.6, 47.3, 47.3, 47.3], [0.1] * 5)    # these are the measurment values for the 'instantaneous velocity'
+instantaneous_velocities_measured = get_speeds_with_total_uncertainties([47.6, 47.6, 47.3, 47.3, 47.3])    # these are the measurment values for the 'instantaneous velocity'
 
 # since we measured the mean velocities and instant. vel. at different positions and the velocity increases 
 # approx. linearly with distance, we can compare them by multipling the higher velocity with a correciton factor
@@ -90,8 +107,8 @@ print(f"instantaneous velocity from measurement = {instantaneous_velocity_measur
 # alternative calculation of g: measuring two different velocities and using the potential energy difference
 # of the gravitational field to calculate the acceleration ###########################
 
-velocities_sensor_1 = unp.uarray([7.7] * 10, [0.1] * 10)    # cm/s
-velocities_sensor_2 = unp.uarray([10.9] * 10, [0.1] * 10)   # cm/s
+velocities_sensor_1 = get_speeds_with_total_uncertainties([7.7] * 10)    # cm/s
+velocities_sensor_2 = get_speeds_with_total_uncertainties([10.9] * 10)   # cm/s
 
 x1 = ufloat(140, placement_error)   # cm
 x2 = ufloat(90, placement_error)    # cm
@@ -114,10 +131,10 @@ distance = ufloat(40, 1)    # cm
 m1 = ufloat(207, 1) # g
 m2 = ufloat(205, 1) # g
 
-v1_i = unp.uarray([43.4, 45.8, 27.3, 34.8, 38.4], [0.1] * 5) # cm/s
-v2_i = unp.uarray([-41.8, -40.3, -27.1, -42.5, -35.9], [0.1] * 5)    # cm/s
-v1_a = unp.uarray([-38.7, -37.7, -26.3, -37.1, -34.2], [0.1] * 5)    # cm/s
-v2_a = unp.uarray([15.7, 44.0, 26.6, 33.8, 37.5], [0.1] * 5) # cm/s
+v1_i = get_speeds_with_total_uncertainties([43.4, 45.8, 27.3, 34.8, 38.4]) # cm/s
+v2_i = get_speeds_with_total_uncertainties([-41.8, -40.3, -27.1, -42.5, -35.9])    # cm/s
+v1_a = get_speeds_with_total_uncertainties([-38.7, -37.7, -26.3, -37.1, -34.2])    # cm/s
+v2_a = get_speeds_with_total_uncertainties([15.7, 44.0, 26.6, 33.8, 37.5]) # cm/s
 
 vsp_i = (m1 * v1_i + m2 * v2_i) / (m1 + m2)    # cm/s
 vsp_a = (m1 * v1_a + m2 * v2_a) / (m1 + m2)    # cm/s
@@ -137,10 +154,10 @@ print(eta)
 m1 = ufloat(406, 1) # g
 m2 = ufloat(205, 1) # g
 
-v1_i = unp.uarray([38.9, 27.4, 33.8, 48, 50], [0.1] * 5) # cm/s
-v2_i = unp.uarray([-54.3, -32.7, -42.9, -52, -41.8], [0.1] * 5)    # cm/s
-v1_a = unp.uarray([-21, -10, -15.9, -14.6, -6.3], [0.1] * 5)    # cm/s
-v2_a = unp.uarray([64.9, 44.6, 56.4, 75.1, 67.1], [0.1] * 5) # cm/s
+v1_i = get_speeds_with_total_uncertainties([38.9, 27.4, 33.8, 48, 50]) # cm/s
+v2_i = get_speeds_with_total_uncertainties([-54.3, -32.7, -42.9, -52, -41.8])    # cm/s
+v1_a = get_speeds_with_total_uncertainties([-21, -10, -15.9, -14.6, -6.3])    # cm/s
+v2_a = get_speeds_with_total_uncertainties([64.9, 44.6, 56.4, 75.1, 67.1]) # cm/s
 
 vsp_i = (m1 * v1_i + m2 * v2_i) / (m1 + m2)    # cm/s
 vsp_a = (m1 * v1_a + m2 * v2_a) / (m1 + m2)    # cm/s
@@ -161,9 +178,9 @@ distance = ufloat(40, 1)    # cm
 m1 = ufloat(207, 1) # g
 m2 = ufloat(205, 1) # g
 
-v1_i = unp.uarray([55.8, 64.5, 61.7, 58.8, 52.6], [0.1] * 5) # cm/s
-v2_i = unp.uarray([-66.2, -61.7, -49, -45.6, -74], [0.1] * 5)    # cm/s
-v_a = unp.uarray([-4, 1.9, 5.8, 6.2, -9.5], [0.1] * 5)  # cm/s
+v1_i = get_speeds_with_total_uncertainties([55.8, 64.5, 61.7, 58.8, 52.6]) # cm/s
+v2_i = get_speeds_with_total_uncertainties([-66.2, -61.7, -49, -45.6, -74])    # cm/s
+v_a = get_speeds_with_total_uncertainties([-4, 1.9, 5.8, 6.2, -9.5])  # cm/s
 
 vsp_i = (m1 * v1_i + m2 * v2_i) / (m1 + m2)    # cm/s
 vsp_a = v_a    # cm/s
