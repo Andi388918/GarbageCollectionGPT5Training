@@ -61,6 +61,9 @@ times_for_distances = [   # cm
         )
 ]
 
+print(np.mean(times_for_distances[4]))
+print(np.std(unp.nominal_values(times_for_distances[4]))/len(times_for_distances[4]))
+
 ######################################################################################
 
 # mean velocities, instantaneous velocity calculation ################################
@@ -68,15 +71,25 @@ times_for_distances = [   # cm
 # calculate the mean velocities from the distances and times recorded
 mean_velocities = [distance / times_mean_velocity for distance, times_mean_velocity in zip(distances, times_for_distances)]   # cm/s
 
-xerr = unp.std_devs(distances)  # cm / extract the uncertainties from the ditances
+x_err = unp.std_devs(distances)  # cm / extract the uncertainties from the distances
 y = [np.mean(unp.nominal_values(mean_velocity_batch)) for mean_velocity_batch in mean_velocities]   # cm/s / calculate the mean velocity of each batch
-yerr = [np.std(unp.nominal_values(mean_velocity_batch)) / len(mean_velocity_batch) for mean_velocity_batch in mean_velocities]  # cm/s / error is standard deviation of batch
+y_err = [np.mean(unp.std_devs(mean_velocity_batch)) for mean_velocity_batch in mean_velocities]  # cm/s / error is standard deviation of batch
 
-popt, pcov = curve_fit(instantaneous_velocity, (unp.nominal_values(distances), [uncertainties.nominal_value(s)] * len(distances)), y, sigma=yerr, absolute_sigma=True)  # fit to measurement values
+print(y)
+print(y_err)
+
+popt, pcov = curve_fit(instantaneous_velocity, (unp.nominal_values(distances), [uncertainties.nominal_value(s)] * len(distances)), y, sigma=y_err, absolute_sigma=True)  # fit to measurement values
 a1 = ufloat(popt[0], pcov[0])    # cm/s^2 / extract acceleration fit parameter
 
-x_values_fit = np.linspace(0, 100, 1000)    # cm
-plt.plot(x_values_fit, unp.nominal_values(instantaneous_velocity((x_values_fit, np.array([s] * len(x_values_fit))), a1)))    # plot the fit function
+x_values_fit = np.linspace(0, 100, 1000)   # cm
+plt.plot(np.square(x_values_fit), unp.nominal_values(instantaneous_velocity((x_values_fit, np.array([s] * len(x_values_fit))), a1)), label="Fitfunktion")    # plot the fit function
+plt.xlabel(r"Distanz $D^2$ in cm$^2$")
+plt.ylabel(r"mittlere Geschwindigkeit $\overline{\langle v \rangle}$ in cm/s")
+plt.title("Messung der mittleren Geschwindigkeit")
+plt.grid(color='grey', linestyle='-', linewidth=0.4)
+plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+
+plt.text(2000, 41.5, r"$a_1 = $" + '{:.2uS}'.format(a1) + r" cm/s$^2$", fontsize=10)
 
 h = ufloat(1.5, 0.1)    # cm
 
@@ -86,7 +99,8 @@ g1 = a1 / unp.sin(unp.arctan(h / l)) / 100    # m/s^2
 
 print(f"g (extrapolated from mean velocities) = {g1} m/s^2")
 
-plt.errorbar(unp.nominal_values(distances), y, xerr, yerr, fmt = '.')
+plt.errorbar(unp.nominal_values(distances) ** 2, y, xerr = x_err, yerr = y_err, fmt = '.', label="Messdaten")
+plt.legend()
 
 instantaneous_velocity_fit = instantaneous_velocity((0, s), a1)  # the y-intercept of the fit function is equal to the instantaneous velocity
 instantaneous_velocities_measured = get_speeds_with_total_uncertainties([47.6, 47.6, 47.3, 47.3, 47.3])    # these are the measurment values for the 'instantaneous velocity'
