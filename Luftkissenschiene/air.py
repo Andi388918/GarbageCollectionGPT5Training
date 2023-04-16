@@ -61,9 +61,6 @@ times_for_distances = [   # cm
         )
 ]
 
-print(np.mean(times_for_distances[4]))
-print(np.std(unp.nominal_values(times_for_distances[4]))/len(times_for_distances[4]))
-
 ######################################################################################
 
 # mean velocities, instantaneous velocity calculation ################################
@@ -74,9 +71,6 @@ mean_velocities = [distance / times_mean_velocity for distance, times_mean_veloc
 x_err = unp.std_devs(distances)  # cm / extract the uncertainties from the distances
 y = [np.mean(unp.nominal_values(mean_velocity_batch)) for mean_velocity_batch in mean_velocities]   # cm/s / calculate the mean velocity of each batch
 y_err = [np.mean(unp.std_devs(mean_velocity_batch)) for mean_velocity_batch in mean_velocities]  # cm/s / error is standard deviation of batch
-
-print(y)
-print(y_err)
 
 popt, pcov = curve_fit(instantaneous_velocity, (unp.nominal_values(distances), [uncertainties.nominal_value(s)] * len(distances)), y, sigma=y_err, absolute_sigma=True)  # fit to measurement values
 a1 = ufloat(popt[0], pcov[0])    # cm/s^2 / extract acceleration fit parameter
@@ -116,6 +110,9 @@ instantaneous_velocity_measured = ufloat(mean_instantaneous_velocity_measured, s
 print(f"instantaneous velocity from fit = {instantaneous_velocity_fit} cm/s")
 print(f"instantaneous velocity from measurement = {instantaneous_velocity_measured} cm/s")
 
+a3 = (instantaneous_velocity_measured**2)/(2*(x0_instantaneous - x1))
+print(f"a3 (from instant. vel.) = {a3}")
+
 ######################################################################################
 
 # alternative calculation of g: measuring two different velocities and using the potential energy difference
@@ -131,6 +128,8 @@ mean_velocity_sensor_1 = ufloat(np.mean(unp.nominal_values(velocities_sensor_1))
 mean_velocity_sensor_2 = ufloat(np.mean(unp.nominal_values(velocities_sensor_2)), 0)
 
 a2 = (mean_velocity_sensor_1 ** 2 - mean_velocity_sensor_2 ** 2) / (2 * (x2 - x1))  # cm/s^2
+
+print("a2", a2)
 
 g2 = a2 / unp.sin(unp.arctan(h / l)) / 100  # m/s^2
 print(f"g (calculated from inst. vel. difference) = {g2} m/s^2")
