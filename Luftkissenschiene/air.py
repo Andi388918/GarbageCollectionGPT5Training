@@ -10,6 +10,13 @@ import matplotlib.pyplot as plt
 def get_speed_with_relative_correction(measurement, correction_interval = [0.01, 0.02]):
     correction1 = measurement * (1 - correction_interval[0])
     correction2 = measurement * (1 - correction_interval[1])
+    ncorrection1 = uncertainties.nominal_value(correction1)
+    ncorrection2 = uncertainties.nominal_value(correction2)
+    ucorrection1 = uncertainties.std_dev(correction1)
+    ucorrection2 = uncertainties.std_dev(correction2)
+    uncertainty = 1/2*(ncorrection1 + ucorrection1 - (ncorrection2 - ucorrection2))
+    return ufloat(ncorrection2 - ucorrection2 + uncertainty, np.abs(uncertainty))
+
     uncertainty = 1/2 * (np.abs(uncertainties.nominal_value(correction1) - uncertainties.nominal_value(correction2)) + uncertainties.std_dev(correction1) + uncertainties.std_dev(correction2))
     return ufloat(np.mean([uncertainties.nominal_value(correction1), uncertainties.nominal_value(correction2)]), uncertainty)
 
@@ -154,6 +161,11 @@ v1_i = get_speeds_with_total_uncertainties([43.4, 45.8, 27.3, 34.8, 38.4]) # cm/
 v2_i = get_speeds_with_total_uncertainties([-41.8, -40.3, -27.1, -42.5, -35.9])    # cm/s
 v1_a = get_speeds_with_total_uncertainties([-38.7, -37.7, -26.3, -37.1, -34.2])    # cm/s
 v2_a = get_speeds_with_total_uncertainties([15.7, 44.0, 26.6, 33.8, 37.5]) # cm/s
+
+print("------")
+for v in v2_i:
+    print('{:.2uS}'.format(v))
+print("------")
 
 vsp_i = (m1 * v1_i + m2 * v2_i) / (m1 + m2)    # cm/s
 vsp_a = (m1 * v1_a + m2 * v2_a) / (m1 + m2)    # cm/s
