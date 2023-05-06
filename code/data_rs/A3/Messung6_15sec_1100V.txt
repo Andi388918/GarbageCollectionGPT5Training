@@ -1,0 +1,21 @@
+Daedalon - Precision Geiger Counter
+Zählmodus: 100 Ereignisse
+Uhrzeit 1. Messpunkt: 5/4/2023 4:53:12 PM
+Zeit (ms)	Zählrate (1/min)
+0	76
+15121	68
+30141	80
+45262	76
+60372	44
+75505	92
+90622	44
+105748	80
+120769	96
+135895	64
+151010	96
+166129	72
+181245	68
+196366	88
+211378	16
+226503	72
+241619	76
