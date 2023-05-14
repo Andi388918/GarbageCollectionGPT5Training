@@ -5,6 +5,7 @@ from uncertainties import ufloat
 import uncertainties.unumpy as unp
 import uncertainties
 from scipy.optimize import curve_fit
+from scipy.special import factorial
 
 import os
 script_directory = os.path.dirname(os.path.realpath(__file__))
@@ -64,14 +65,41 @@ with open(directory_name, "r") as file:
 
 bgr_activities = np.array(bgr_activities)
 mean_bgr_activity = np.mean(bgr_activities)
+
 bgr_activities_15_sec_interval = bgr_activities/4
 
+mean_value_bgr_15_sec_interval = np.mean(bgr_activities_15_sec_interval)
+std_bgr_15_sec_interval = ufloat(np.std(unp.nominal_values(bgr_activities_15_sec_interval)), np.std(unp.nominal_values(bgr_activities_15_sec_interval)) / np.sqrt(2 * (len(bgr_activities_15_sec_interval) - 1)))
+mean_wo = uncertainties.nominal_value(mean_value_bgr_15_sec_interval)
+std_wo = uncertainties.nominal_value(std_bgr_15_sec_interval)
+
+print(f"mean value of bgr in 15 sec interval = {mean_value_bgr_15_sec_interval}")
+print(f"std dev of bgr in 15 sec interval = {std_bgr_15_sec_interval}")
+print(f"std dev of poisson with above mean value: {(mean_value_bgr_15_sec_interval)**(1/2)}")
+print(f"total number of events: {sum(bgr_activities_15_sec_interval)}")
+print(f"std dev of poisson with exp. value = total number of events: {(sum(bgr_activities_15_sec_interval))**(1/2)}")
+
+labels, counts = np.unique(np.round(unp.nominal_values(bgr_activities_15_sec_interval), decimals=0), return_counts=True)
+
 fig, ax2 = plt.subplots()
-ax2.hist(unp.nominal_values(bgr_activities_15_sec_interval), density=True, bins=30)
+ax2.bar(labels, 100*(np.exp(-mean_wo) * (mean_wo)**labels)/(factorial(labels)), align='center', color="red", label="Poisson-Verteilung")
+ax2.bar(labels, counts, align='center', label="Messdaten")
+ax2.set_xticks(labels)
 ax2.set_xlabel(r"Zählrate $A$ in (15 s)$^{-1}$")
 ax2.set_ylabel(r"Häufigkeit")
 ax2.set_title(r"Statistik radioaktiver Zerfälle (Hintergrundstrahlung)")
 ax2.grid(linewidth = 0.2)
+ax2.legend()
+
+fig, ax4 = plt.subplots()
+ax4.bar(labels, 100 * 1/np.sqrt(2*np.pi*std_wo**2) * np.exp(-1/2*((labels - mean_wo)/std_wo)**2), align='center', color="purple", label="Normalverteilung")
+ax4.bar(labels, counts, align='center', label="Messdaten")
+ax4.set_xticks(labels)
+ax4.set_xlabel(r"Zählrate $A$ in (15 s)$^{-1}$")
+ax4.set_ylabel(r"Häufigkeit")
+ax4.set_title(r"Statistik radioaktiver Zerfälle (Hintergrundstrahlung)")
+ax4.grid(linewidth = 0.2)
+ax4.legend()
 
 # Exercise 3: Activity of Ba 137 *
 
