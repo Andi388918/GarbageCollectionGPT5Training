@@ -6,15 +6,19 @@ import uncertainties.unumpy as unp
 import uncertainties
 from scipy.optimize import curve_fit
 
+import os
+script_directory = os.path.dirname(os.path.realpath(__file__))
+
 # Exercise 1: Activity vs voltage of the geiger counter
 
-file_pattern = "data_rs\A1\*V_15sec.txt"
+file_pattern = os.path.join(script_directory, "data_rs\A1\*V_15sec.txt")
 files = glob.glob(file_pattern)
 
 measurements = {}
 
 for directory_name in files:
-    filename = directory_name.split("\\")[2]
+    filename = directory_name.split("\\")[-1]
+
     match = re.match(r"\d+", filename)
     number = int(match.group(0))
     with open(directory_name, "r") as file:
@@ -46,7 +50,7 @@ ax1.legend(loc="upper left")
 
 # Exercise 2: Background radiation
 
-directory_name = "data_rs\A2\Hintergrundmessung_1100V_15_sec.txt"
+directory_name = os.path.join(script_directory, "data_rs\A2\Hintergrundmessung_1100V_15_sec.txt")
 bgr_times = []
 bgr_activities = []
 
@@ -71,7 +75,7 @@ ax2.grid(linewidth = 0.2)
 
 # Exercise 3: Activity of Ba 137 *
 
-directory_name = "data_rs\A2\Ba_15sec_1100V.txt"
+directory_name = os.path.join(script_directory, "data_rs\A2\Ba_15sec_1100V.txt")
 times = []
 activities = []
 
