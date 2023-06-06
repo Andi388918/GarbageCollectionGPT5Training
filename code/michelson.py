@@ -108,4 +108,44 @@ ax3.legend(loc="upper left")
 
 print(a)
 
-plt.show()
+# refraction index of glass
+
+angles = unp.uarray(list(range(-10, 11, 2)), 1)
+interference_rings = unp.uarray([104, 62, 31, 15, 4, 0, 4, 16, 33, 52, 106], np.abs(np.arange(-2.5, 3.0, 0.5)))
+interference_rings = np.delete(interference_rings, 5)
+angles = np.delete(angles, 5)
+
+x = unp.nominal_values(angles)
+y = unp.nominal_values(interference_rings)
+xerror = unp.std_devs(angles)
+yerror = unp.std_devs(interference_rings)
+
+glass_width = ufloat(7.05, 0.1) * 10**(-3) # m
+
+def get_refractive_index(angle, interference_rings):
+    angle_in_radians = (angle / 360) * 2 * np.pi
+    wavelength_in_m = wavelength * 10**(-6)
+
+    return 1/(1 - interference_rings * wavelength_in_m / (glass_width * angle_in_radians**2))
+
+refractive_indices = get_refractive_index(angles, interference_rings)
+y = unp.nominal_values(refractive_indices)
+yerror = unp.std_devs(refractive_indices)
+
+fig, ax4 = plt.subplots()
+ax4.errorbar(x, y, xerr=xerror, yerr=yerror, fmt=".", label="Messdaten")
+ax4.set_xlabel(r"Angle $\phi$ in degrees")
+ax4.set_ylabel(r"Refractive index $n(\phi)$")
+ax4.set_title("Refractive index of glass")
+ax4.grid(linewidth = 0.2)
+
+mean_refractive_index = np.mean(refractive_indices)
+# print(mean_refractive_index)
+
+ax4.axhline(y=uncertainties.nominal_value(mean_refractive_index), color='r', linestyle='-', label="Mean refractive index = $1.4(1)$")
+ax4.legend()
+
+for m in refractive_indices:
+    print('{:.2u}'.format(m))
+
+# plt.show()
